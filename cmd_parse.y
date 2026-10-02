@@ -30,14 +30,48 @@ void print_loc(FILE*, YYLTYPE);
 %union {
     char* str_temp;
 }
-
+//Declare tokens here
 %%
+%token VARREF
+%token OPSTAR
+%token OPTPAIR
+%token CMDSEP
+%token LPAR
+%token RPAR
+%token LBRACE
+%token RBRACE
+%token LABEL
+%token <str_temp> STR
+%token SYM
+%token INT
+%token FLT
 
 /* TODO: Fill in the parser */
 
 /* TODO: Your top-level rule should put an object of type CLObj* into *expression */
-input:          %empty { *expression = NULL; }
-        ;
+input:          command_list { *expression = $1; };
+
+input ::= <command_list>
+
+variable ::= VARREF SYM
+sym: SYM;
+int: INT;
+float: FLT;
+string: STR;
+
+name_list: empty | variable name_list;
+
+function: LABEL SYM LPAR name_list RPAR LBRACE command_list RBRACE;
+
+value_expression: SYM | INT | FLT | STR | variable | LPAR command RPAR;
+
+long_option: OPTSTART SYM | OPTSTART SYM OPTPAIR value_expression;
+
+arguments_list: empty | value_expression arguments_list | long_option arguments_list;
+
+command: SYM arguments_list;
+
+command_list: empty | function command_list | command CMDSEP command_list;
 
 %%
 
