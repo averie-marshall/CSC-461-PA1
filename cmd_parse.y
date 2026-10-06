@@ -59,13 +59,37 @@ int: INT;
 float: FLT;
 string: STR;
 
-name_list: empty | variable name_list;
+name_list:      %empty 
+          {
+                $$ = NULL;
+          }
 
-function: LABEL SYM LPAR name_list RPAR LBRACE command_list RBRACE;
+             | variable name_list
+          {
+                Node* newnode = malloc(sizeof(Node));
+                newnode->name = $1;
+                newnode->next = $2;
+                $$ = newnode;
+          };
 
-value_expression: SYM | INT | FLT | STR | variable | LPAR command RPAR;
+function: LABEL SYM LPAR <name_list> RPAR LBRACE <command_list> RBRACE
+            $$ = name_list { $2, $4, $7 };
+          ;
 
-long_option: OPTSTART SYM | OPTSTART SYM OPTPAIR value_expression;
+value_expression:
+            SYM { $$ = $1 };
+          | INT { $$ = $1 };
+          | FLT { $$ = $1 };
+          | STR { $$ = $1 };
+          | variable { $$ = $1 };
+          | LPAR command RPAR { $$ = $2 };
+          ;
+
+//May be wrong. I couldn't figure out what OPTPAIR does.
+long_option: OPTSTART SYM | OPTSTART SYM OPTPAIR value_expression
+            OPTSTART SYM { $$ = $1 };
+          | OPTSTART SYM OPTPAIR value_expression { }
+          ;
 
 arguments_list: empty | value_expression arguments_list | long_option arguments_list;
 

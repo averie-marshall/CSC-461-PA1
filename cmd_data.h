@@ -9,6 +9,20 @@ typedef struct CLObj {
     char Label;
 } CLObj;
 
+void name_list();
+
+void function();
+
+value_expression();
+
+void long_option();
+
+void arguments_list();
+
+void command();
+
+void command_list();
+
 void evaluate(CLObj *);
 
 #endif
