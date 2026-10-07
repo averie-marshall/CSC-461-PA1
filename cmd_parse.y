@@ -29,11 +29,13 @@ void print_loc(FILE*, YYLTYPE);
 
 %union {
     char* str_temp;
+    long int_val;
+    double flt_val;
+    CLObj* obj;
 }
 //Declare tokens here
-%%
 %token VARREF
-%token OPSTAR
+%token OPTSTART
 %token OPTPAIR
 %token CMDSEP
 %token LPAR
@@ -42,22 +44,21 @@ void print_loc(FILE*, YYLTYPE);
 %token RBRACE
 %token LABEL
 %token <str_temp> STR
-%token SYM
-%token INT
-%token FLT
+%token <str_temp> SYM
+%token <int_val> INT
+%token <flt_val> FLT
+
 
 /* TODO: Fill in the parser */
+%type <obj> variable name_list function value_expression long_option
+%type <obj> command arguments_list command_list
+
+%%
 
 /* TODO: Your top-level rule should put an object of type CLObj* into *expression */
-input:          command_list { *expression = $1; };
+input:          command_list { *expression = new_pro($1); };
 
-input ::= <command_list>
-
-variable ::= VARREF SYM
-sym: SYM;
-int: INT;
-float: FLT;
-string: STR;
+variable: VARREF SYM { $$ = new_var($2); };
 
 name_list:      %empty 
           {
@@ -66,36 +67,37 @@ name_list:      %empty
 
              | variable name_list
           {
-                Node* newnode = malloc(sizeof(Node));
-                newnode->name = $1;
-                newnode->next = $2;
-                $$ = newnode;
+             $$ = front($1, $2);
           };
 
-function: LABEL SYM LPAR <name_list> RPAR LBRACE <command_list> RBRACE
-            $$ = name_list { $2, $4, $7 };
+function: LABEL SYM LPAR name_list RPAR LBRACE command_list RBRACE
+            { $$ = new_fun($2, $4, $7); }
           ;
 
 value_expression:
-            SYM { $$ = $1 };
-          | INT { $$ = $1 };
-          | FLT { $$ = $1 };
-          | STR { $$ = $1 };
-          | variable { $$ = $1 };
-          | LPAR command RPAR { $$ = $2 };
+            SYM { $$ = new_sym($1); }
+          | INT { $$ = new_int($1); }
+          | FLT { $$ = new_flt($1); }
+          | STR { $$ = new_str($1); }
+          | variable { $$ = $1; }
+          | LPAR command RPAR { $$ = $2; }
           ;
 
 //May be wrong. I couldn't figure out what OPTPAIR does.
-long_option: OPTSTART SYM | OPTSTART SYM OPTPAIR value_expression
-            OPTSTART SYM { $$ = $1 };
-          | OPTSTART SYM OPTPAIR value_expression { }
+long_option:  OPTSTART SYM { $$ = new_flag($2); }
+          | OPTSTART SYM OPTPAIR value_expression { $$ = new_lopt($2, $4); }
           ;
 
-arguments_list: empty | value_expression arguments_list | long_option arguments_list;
+arguments_list: %empty {$$ = NULL; }
+          | value_expression arguments_list {$$ = front($1, $2); }
+          | long_option arguments_list {$$ = front($1, $2); }
+          ;
 
-command: SYM arguments_list;
+command: SYM arguments_list { $$ = new_com($1, $2); };
 
-command_list: empty | function command_list | command CMDSEP command_list;
+command_list: %empty { $$ = NULL; }
+          | function command_list { $$ = front($1, $2); }
+          | command CMDSEP command_list { $$ = front($1, $3); };
 
 %%
 
